@@ -14,3 +14,7 @@ npm install
 ```
 UPDATE API KEY IN .ENV FILE
 ```
+
+```
+Run node index.js in the project directory 
+```
