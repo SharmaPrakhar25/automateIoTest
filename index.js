@@ -4,7 +4,11 @@ const chalk = require('chalk');
 const clear = require('clear');
 const figlet = require('figlet');
 const interactor = require('./lib/interactor');
-const commandController = require('./lib/commandController')
+const commandController = require('./lib/commandController');
+const commander = require('commander');
+require('events').EventEmitter.prototype._maxListeners = 100;
+
+
 
 clear();
 
@@ -21,20 +25,19 @@ const giveHints = async (input) => {
     // console.log(chalk.red('Input in givehints is' + input));
 
     let word = null;
-    if(input === null || input === undefined)
-    {
+    if (input === null || input === undefined) {
         let generatedWord = await commandController.generateRandomWord();
-        word  = generatedWord.data.word;
-    }else{
+        word = generatedWord.data.word;
+    } else {
         word = input;
     }
 
-    console.log(chalk.red.bold('WORD is ' + word));
+    // console.log(chalk.red.bold('WORD is ' + word));
 
     // * SHOW THE HINTS
     await commandController.definition(word);
-    await commandController.synonym(word, 1);
-    await commandController.antonym(word);
+    await commandController.synonym(word, 0);
+    await commandController.antonym(word, 0);
 
     return word;
 }
@@ -43,18 +46,22 @@ const giveHints = async (input) => {
 // create another variable for game 
 const runGame = async () => {
     // * WORK IN PROGRESS
-    await interactor.playGame();
+    let permission = await interactor.playGame();
 
-    console.log(
-        chalk.white.bold(
-            figlet.textSync('Welcome To Game', {
-                horizontalLayout: 'full'
-            })
-        )
-    );
+    if (permission.allowgame === true) {
+        console.log(
+            chalk.white.bold(
+                figlet.textSync('Guess the word !!!!', {
+                    horizontalLayout: 'full'
+                })
+            )
+        );
 
-    let word = await giveHints();
-    checkAnswer(word);
+        let word = await giveHints();
+        checkAnswer(word);
+    }else{
+        run();
+    }
 }
 
 
@@ -69,13 +76,14 @@ const checkAnswer = async (word) => {
     } else {
         const giveOptions = await interactor.giveOptions();
         // console.log(giveOptions.choices);
-        if(giveOptions.choices === 'Try again'){
-            checkAnswer(word)
-        }else if(giveOptions.choices === 'Hint'){
+        if (giveOptions.choices === 'Try again') {
+            checkAnswer(word);
+        } else if (giveOptions.choices === 'Hint') {
             giveHints(word);
             checkAnswer(word);
-        }else{
-            console.log(chalk.greenBright.italic('Correct answer is '+ word+' . Thanks for playing.'))
+        } else {
+            console.log(chalk.greenBright.italic('Correct answer is ' + word + ' . Thanks for playing.'));
+            await commandController.fullDictionary(word);
             run();
         }
     }
@@ -83,31 +91,96 @@ const checkAnswer = async (word) => {
 
 
 const run = async () => {
-    const getInput = await interactor.start();
-    const userInput = getInput.command;
-    const getWord = userInput.split(' ');
 
-    let data = {};
-    if (userInput.indexOf('defn') === 0) {
-        datya = commandController.definition(getWord[1]);
-    } else if (userInput.indexOf('syn') === 0) {
-        data = commandController.synonym(getWord[1], 1);
-    } else if (userInput.indexOf('ant') === 0) {
-        data = commandController.antonym(getWord[1]);
-    } else if (userInput.indexOf('ex') === 0) {
-        data = commandController.example(getWord[1]);
-    } else if (getWord[0] !== null && getWord[0] !== undefined && getWord[0] !== "" && getWord[0] !== "play") {
-        data = commandController.fullDictionary(getWord[0]);
-    } else if (userInput === "") {
-        data = commandController.fullDictionaryRandom(getWord[1]);
-    } else if (userInput === 'play') {
-        runGame();
-    } else {
-        console.log(chalk.bold.red('No COMMAND FOUND !!!!'))
+    try {
+        const getInput = await interactor.start();
+        const userInput = getInput.command;
+        const getWord = userInput.trim().split(' ');
+
+        for (value in getWord) {
+            getWord[value] = getWord[value].toLowerCase();
+        }
+
+        // console.log(getWord);
+        let data = {};
+
+        // commander
+        //     .command('defn <word>')
+        //     .description('Gives the definition of the word')
+        //     .action(async (word) => {
+        //         await commandController.definition(word)
+        //     });
+
+
+        // commander
+        //     .command('syn <word>')
+        //     .description('Gives the synonym of the word')
+        //     .action(async (word) => {
+        //         await commandController.synonym(word, 1)
+        //     });
+
+
+        // commander
+        //     .command('ant <word>')
+        //     .description('Gives the antonym of word')
+        //     .action(async (word) => {
+        //         await commandController.antonym(word)
+        //     });
+
+
+        // commander
+        //     .command('<word>')
+        //     .description('Gives full dictionary for the word')
+        //     .action(async (word) => {
+        //         await commandController.fullDictionary(word)
+        //     });
+
+        // commander
+        //     .command('')
+        //     .description('Gives full dictionary for the word of the day')
+        //     .action(async () => {
+        //         await commandController.fullDictionaryRandom()
+        //     });
+
+        // commander
+        //     .command('play')
+        //     .description('Starts the game')
+        //     .action(runGame());
+
+
+
+        // commander.parse(process.argv);
+
+
+
+        if (userInput.indexOf('defn') === 0) {
+            data = await commandController.definition(getWord[1]);
+        } else if (userInput.indexOf('syn') === 0) {
+            data = await commandController.synonym(getWord[1], 1);
+        } else if (userInput.indexOf('ant') === 0) {
+            data = await commandController.antonym(getWord[1], 1);
+        } else if (userInput.indexOf('ex') === 0) {
+            data = await commandController.example(getWord[1]);
+        } else if (getWord[0] !== null && getWord[0] !== undefined && getWord[0] !== "" && getWord[0] !== "play") {
+            data = await commandController.fullDictionary(getWord[0]);
+        } else if (userInput === "") {
+            data = await commandController.fullDictionaryRandom(getWord[1]);
+        } else if (userInput === 'play') {
+            runGame();
+        } else {
+            console.log(chalk.bold.red('No COMMAND FOUND !!!!'))
+        }
+
+        // console.log("index -- " + data);
+        if (data !== undefined && data !== null) {
+            if (Object.keys(data).length > 0) {
+                run();
+            }
+
+        }
+    } catch (err) {
+        console.log(err);
     }
-
-    // run();
-    // process.exit();
 };
 
 run();
