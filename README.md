@@ -1,4 +1,4 @@
-# automateIoTest
+# Automate.Io Assigment submission by Prakhar Sharma
 **Command Line Dictionary Tool Assignment task repository**
 
 **Project Setup**
